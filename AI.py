@@ -196,3 +196,154 @@ accuracy = accuracy_score(y_test, y_preds)
 
 
 print(f"Accuracy: {accuracy:.2f}")
+
+scores = cross_val_score(clf, X_test, y_test)
+print(f"Mean accuracy: {np.mean(scores):.2f}")
+print(f"Standard deviation: {np.std(scores):.2f}")
+
+#Make some prediction
+y_preds= clf.predict(X_test)
+
+from sklearn.metrics import classification_report
+
+print("Classification report: ")
+print(classification_report(y_test, y_preds))
+
+np.array(y_test)
+np.array(y_preds)
+from sklearn.metrics import confusion_matrix, classification_report
+
+# Confusion Matrix
+cm = confusion_matrix(y_test, y_preds)
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=['Normal', 'Anomalous'], yticklabels=['Normal', 'Anomalous'])
+plt.title('Confusion Matrix')
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+plt.show()
+
+# Classification Report
+print(classification_report(y_test, y_preds))
+
+# Kategóriális oszlopok átalakítása numerikussá
+label_encoder = LabelEncoder()
+for col in ['protocol_type', 'service', 'flag']:
+    df[col] = label_encoder.fit_transform(df[col])
+
+# Numerikus adat normalizálása
+scaler = StandardScaler()
+numerical_features = df.select_dtypes(include=['int64', 'float64']).columns
+df[numerical_features] = scaler.fit_transform(df[numerical_features])
+
+# Elbow módszer az optimális klaszterszám kiválasztásához
+inertia = []
+for k in range(1, 10):
+    kmeans = KMeans(n_clusters=k, random_state=42)
+    kmeans.fit(df[numerical_features])
+    inertia.append(kmeans.inertia_)
+
+# Elbow-görbe megjelenítése
+plt.plot(range(1, 10), inertia, marker='o')
+plt.xlabel('Klaszterek száma')
+plt.ylabel('Inertia')
+plt.show()
+
+# Optimális klaszterszám beállítása az elbow-görbe alapján
+optimal_k = 3  # Állítsd be az elbow módszer alapján
+
+# KMeans klaszterezés az optimális klaszterszámmal
+kmeans = KMeans(n_clusters=optimal_k, random_state=0)
+df['cluster'] = kmeans.fit_predict(df[numerical_features])
+
+# Távolságok kiszámítása a legközelebbi centroidtól minden adatpontra (csak numerikus oszlopokkal)
+df['distance_to_centroid'] = np.min(kmeans.transform(df[numerical_features]), axis=1)
+
+# Anomáliák kiszűrése
+# Azokat tekintjük anomáliának, amelyek távolsága az átlagnál szignifikánsan nagyobb
+distance_threshold = df['distance_to_centroid'].mean() + 2 * df['distance_to_centroid'].std()
+anomalies = df[df['distance_to_centroid'] > distance_threshold]
+
+# Eredmények kiírása
+print("Összes anomália száma:", anomalies.shape[0])
+print(anomalies)
+
+import pandas as pd
+
+# Numerikus és kategóriás oszlopok szétválasztása
+numerical_features = df.select_dtypes(include=['int64', 'float64']).columns
+categorical_features = df.select_dtypes(include=['object']).columns
+
+# Numerikus oszlopok statisztikai mutatói (átlag, szórás, minimum, maximum, kvartilisek)
+print("Numerikus oszlopok statisztikai mutatói:")
+print(df[numerical_features].describe())
+
+# Kategóriás oszlopok gyakoriságai
+print("\nKategóriás oszlopok gyakorisági eloszlása:")
+for col in categorical_features:
+    print(f"\n{col} oszlop:")
+    print(df[col].value_counts())
+
+# Eltérések és kilengő adatok a numerikus oszlopok között
+print("\nEltérések és kilengő adatok a numerikus oszlopok között:")
+for col in numerical_features:
+    # Szórás és maximum-minimum eltérés
+    print(f"\n{col} oszlop eltérései:")
+    print(f"  Szórás: {df[col].std():.2f}")
+    print(f"  Maximum - Minimum eltérés: {df[col].max() - df[col].min():.2f}")
+    print(f"  25%-os kvartilis: {df[col].quantile(0.25):.2f}")
+    print(f"  50%-os kvartilis (median): {df[col].quantile(0.5):.2f}")
+    print(f"  75%-os kvartilis: {df[col].quantile(0.75):.2f}")
+    print(f"  IQR (Interquartile Range): {df[col].quantile(0.75) - df[col].quantile(0.25):.2f}")
+    print(f"  Skewness (aszimmetria): {df[col].skew():.2f}")
+    print(f"  Kurtosis: {df[col].kurt():.2f}")
+
+    # IQR alapú kilengők meghatározása
+    Q1 = df[col].quantile(0.25)
+    Q3 = df[col].quantile(0.75)
+    IQR = Q3 - Q1
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+
+    # Kilengő adatok
+    outliers = df[(df[col] < lower_bound) | (df[col] > upper_bound)]
+
+    if not outliers.empty:
+        print(f"Kilengő adatok ({col}):")
+        print(outliers[[col]].head())  # Az első pár kilengő adatot kiírjuk
+    else:
+        print(f"Nincs kilengő adat a {col} oszlopban.")
+
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Numerikus oszlopok
+numerical_features = df.select_dtypes(include=['int64', 'float64']).columns
+
+# Kilengő adatok nyilvántartása
+outlier_flags = pd.DataFrame(index=df.index)
+
+# Kilengő adatok vizsgálata minden numerikus oszlopra
+for col in numerical_features:
+    Q1 = df[col].quantile(0.25)
+    Q3 = df[col].quantile(0.75)
+    IQR = Q3 - Q1
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+
+    # Kilengő adatokat keresünk
+    outliers = (df[col] < lower_bound) | (df[col] > upper_bound)
+
+    # Kilengő adatokat hozzáadunk a DataFrame-hez
+    outlier_flags[col] = outliers.astype(int)  # 1, ha kilengő adat, 0 ha nem
+
+# Hőtérkép létrehozása
+plt.figure(figsize=(12, 8))  # A hőtérkép méretének beállítása
+sns.heatmap(outlier_flags, cmap='coolwarm', cbar=False, xticklabels=True, yticklabels=False, annot=False)
+
+# Hőtérkép cím és címkék beállítása
+plt.title("Kilengő adatok hőtérképe", fontsize=16)
+plt.xlabel("Oszlopok", fontsize=14)
+plt.ylabel("Adatpontok", fontsize=14)
+
+# Hőtérkép megjelenítése
+plt.show()
