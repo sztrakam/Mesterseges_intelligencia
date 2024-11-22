@@ -44,3 +44,32 @@ test["label"] = test["label"].apply(lambda x: "normal" if x == "normal" else "an
 print(train["label"].value_counts())
 print()
 print(test["label"].value_counts())
+
+missing_columns= [col for col in train.columns if train[col].isnull().sum() > 0]
+print(f"Number of missing columns: {missing_columns} ")
+
+print(f"Number of duplicate rows: {train.duplicated().sum()}")
+
+# Removing duplicate rows
+train.drop_duplicates(inplace=True)
+
+# Check the shape of the dataset after removing duplicates
+print(f"New shape of the dataset: {train.shape}")
+
+print(f"Number of duplicate rows: {test.duplicated().sum()}")
+
+# Removing duplicate rows
+test.drop_duplicates(inplace=True)
+
+# Check the shape of the dataset after removing duplicates
+print(f"New shape of the dataset: {test.shape}")
+sns.countplot(x=train["label"])
+
+##df = pd.read_csv('/content/drive/My Drive/Test_data.csv')
+df = pd.read_csv(train_url,names=col_names)
+##("oszlopok: ",df.columns)
+numeric_df = test.select_dtypes(include=['float64', 'int64'])
+corr = numeric_df.corr()
+fig, ax = plt.subplots(figsize=(30, 30))
+sns.heatmap(corr, xticklabels=corr.columns, yticklabels=corr.columns, annot=True, cmap='coolwarm')
+plt.show()
