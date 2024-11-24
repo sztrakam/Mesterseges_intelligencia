@@ -8,6 +8,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.feature_selection import RFE
 import time
 from sklearn.ensemble import RandomForestClassifier
+##dataset_path = '/content/drive/My Drive/KDDTest+.arff'  # A dataset elérési útja a Drive-on
 train_url = 'https://raw.githubusercontent.com/merteroglu/NSL-KDD-Network-Instrusion-Detection/master/NSL_KDD_Train.csv'
 test_url = 'https://raw.githubusercontent.com/merteroglu/NSL-KDD-Network-Instrusion-Detection/master/NSL_KDD_Test.csv'
 
@@ -64,13 +65,15 @@ test.drop_duplicates(inplace=True)
 # Check the shape of the dataset after removing duplicates
 print(f"New shape of the dataset: {test.shape}")
 sns.countplot(x=train["label"])
+
+##df = pd.read_csv('/content/drive/My Drive/Test_data.csv')
 df = pd.read_csv(train_url,names=col_names)
+##("oszlopok: ",df.columns)
 numeric_df = test.select_dtypes(include=['float64', 'int64'])
 corr = numeric_df.corr()
 fig, ax = plt.subplots(figsize=(30, 30))
 sns.heatmap(corr, xticklabels=corr.columns, yticklabels=corr.columns, annot=True, cmap='coolwarm')
 plt.show()
-
 
 df = df.copy()
 for col in df.select_dtypes(include=['int64', 'float64']).columns:
@@ -132,7 +135,7 @@ LabelEncoding(test)
 
 print(test["protocol_type"].head())
 
-print(len(train)/len(test))
+len(train)/len(test)
 
 X_train = train.drop(["label"], axis=1)
 y_train = train["label"]
@@ -185,6 +188,7 @@ np.mean(y_preds == y_test)
 clf.score(X_train, y_train)
 
 clf.score(X_test, y_test)
+
 from sklearn.metrics import accuracy_score
 accuracy_score(y_test, y_preds)
 
@@ -347,3 +351,40 @@ plt.ylabel("Adatpontok", fontsize=14)
 
 # Hőtérkép megjelenítése
 plt.show()
+
+print("Vége")
+# Eltérések és anomáliák meghatározása
+distance_threshold = df['distance_to_centroid'].mean() + 2 * df['distance_to_centroid'].std()
+anomaliak = df[df['distance_to_centroid'] > distance_threshold]
+
+# Az anomáliák száma és a thresholdhoz viszonyított arány
+anomalia_count = anomaliak.shape[0]
+threshold_ratio = anomalia_count / len(df)  # Az anomáliák aránya a teljes adathalmazhoz képest
+
+# Anomáliák név szerinti megjelenítése
+anomalia_names = anomaliak.columns
+
+# Anomália nevek és darabszámok kiírása
+print(f"Összes anomália: {anomalia_count}")
+print(f"Az anomáliák aránya a teljes adathalmazban: {threshold_ratio:.4f}")
+
+# Az anomáliák számának és a tresholdhoz viszonyított arányának grafikonon való megjelenítése
+# Konvertáljuk a nem numerikus oszlopokat, hogy biztosan numerikusak legyenek
+# Ha nem numerikus oszlopok is vannak, azokat figyelmen kívül hagyjuk
+
+# Eltávolítjuk a 'duration' oszlopot, ha az létezik
+anomaliak = anomaliak.drop(columns=['duration'], errors='ignore')
+
+# Most számoljuk ki az oszlopok összegét (ha numerikus)
+numeric_anomaliak = anomaliak.select_dtypes(include=['number'])
+
+plt.figure(figsize=(10, 6))
+plt.bar(numeric_anomaliak.columns, [numeric_anomaliak[col].sum() for col in numeric_anomaliak.columns])
+plt.xlabel('Anomália oszlopok')
+plt.ylabel('Darabszám')
+plt.title('Anomáliák előfordulásának száma az oszlopokban')
+plt.xticks(rotation=90)
+plt.tight_layout()
+plt.show()
+
+print("Vége2")
