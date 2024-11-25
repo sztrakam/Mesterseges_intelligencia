@@ -8,9 +8,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.feature_selection import RFE
 import time
 from sklearn.ensemble import RandomForestClassifier
-##dataset_path = '/content/drive/My Drive/KDDTest+.arff'  # A dataset elérési útja a Drive-on
+import streamlit as st
 train_url = 'https://raw.githubusercontent.com/merteroglu/NSL-KDD-Network-Instrusion-Detection/master/NSL_KDD_Train.csv'
 test_url = 'https://raw.githubusercontent.com/merteroglu/NSL-KDD-Network-Instrusion-Detection/master/NSL_KDD_Test.csv'
+
+st.set_page_config(page_title="NSL-KDD Intrusion Detection", layout="wide")
 
 col_names = ["duration","protocol_type","service","flag","src_bytes",
     "dst_bytes","land","wrong_fragment","urgent","hot","num_failed_logins",
@@ -27,53 +29,47 @@ col_names = ["duration","protocol_type","service","flag","src_bytes",
 train = pd.read_csv(train_url,header=None, names = col_names)
 test = pd.read_csv(test_url, header=None, names = col_names)
 
-print('Dimensions of the Training set:',train.shape)
-print('Dimensions of the Test set:',test.shape)
+st.write('Az edzéskészlet méretei:',train.shape)
+st.write('A tesztkészlet méretei:',test.shape)
 
-train.info()
+st.write(f'A train adathalmaz fejlécei: {train.info()}')
 
-print('Label distribution Training set:')
-print(train['label'].value_counts())
-print()
-print('Label distribution Test set:')
-print(test['label'].value_counts())
+st.write('Címkék eloszlása az edzéskészletben:')
+st.write(train['label'].value_counts())
+st.write()
+st.write('Label distribution Test set:')
+st.write(test['label'].value_counts())
 
 #Rewriting
 train["label"] = train["label"].apply(lambda x: "normal" if x == "normal" else "anomalous")
 test["label"] = test["label"].apply(lambda x: "normal" if x == "normal" else "anomalous")
 
-print(train["label"].value_counts())
-print()
-print(test["label"].value_counts())
+st.write(train["label"].value_counts())
+st.write()
+st.write(test["label"].value_counts())
 
 missing_columns= [col for col in train.columns if train[col].isnull().sum() > 0]
-print(f"Number of missing columns: {missing_columns} ")
+st.write(f"Hiányzó oszlopok száma: {missing_columns} ")
 
-print(f"Number of duplicate rows: {train.duplicated().sum()}")
+st.write(f"Duplikált sorok számai:  {train.duplicated().sum()}")
 
-# Removing duplicate rows
 train.drop_duplicates(inplace=True)
 
-# Check the shape of the dataset after removing duplicates
-print(f"New shape of the dataset: {train.shape}")
+st.write(f"(train)Az adathalmaz új alakja: {train.shape}")
 
-print(f"Number of duplicate rows: {test.duplicated().sum()}")
+st.write(f"Duplikált sorok száma: {test.duplicated().sum()}")
 
-# Removing duplicate rows
 test.drop_duplicates(inplace=True)
 
-# Check the shape of the dataset after removing duplicates
-print(f"New shape of the dataset: {test.shape}")
+st.write(f"(test)Az adathalmaz új alakja: {test.shape}")
 sns.countplot(x=train["label"])
 
-##df = pd.read_csv('/content/drive/My Drive/Test_data.csv')
 df = pd.read_csv(train_url,names=col_names)
-##("oszlopok: ",df.columns)
 numeric_df = test.select_dtypes(include=['float64', 'int64'])
 corr = numeric_df.corr()
 fig, ax = plt.subplots(figsize=(30, 30))
 sns.heatmap(corr, xticklabels=corr.columns, yticklabels=corr.columns, annot=True, cmap='coolwarm')
-plt.show()
+st.pyplot(fig)
 
 df = df.copy()
 for col in df.select_dtypes(include=['int64', 'float64']).columns:
@@ -95,12 +91,12 @@ model = RandomForestClassifier(random_state=42, n_estimators=10)  ## n_estimator
 ##100 fával dolgozik
 model.fit(X_train, y_train)
 score = model.score(X_test, y_test)
-print(f"Model pontossága: {score:.2f}")
+st.write(f"Model pontossága: {score:.2f}")
 
 from sklearn.model_selection import cross_val_score
 scores = cross_val_score(model, X_train, y_train, cv=3)  # 5-kép keresztvalidáció
-print(f"Cross-validation scores: {scores}")
-print(f"Mean score: {scores.mean():.2f}")
+st.write(f"Keresztvalidációs pontszámok: {scores}")
+st.write(f"Átlagos  pontszám: {scores.mean():.2f}")
 
 
 ##Megnézzük mennyi konstans oszlop található(értékek megegyeznek)
@@ -111,9 +107,9 @@ def check_constant_columns(test):
 # Example usage
 constant_cols = check_constant_columns(test)
 if constant_cols:
-    print(f"Columns with the same value across all rows: {constant_cols}")
+    st.write(f"Oszlopok azonos értékekkel az összes sorban: {constant_cols}")
 else:
-    print("No columns have the same value across all rows.")
+    st.write("Nincs oszlop azonos értékkel a sorok között.")
 
 #Dropping a column because every value is 0
 train.drop(['num_outbound_cmds'], axis=1, inplace=True)
@@ -133,19 +129,21 @@ def LabelEncoding(df):
 LabelEncoding(train)
 LabelEncoding(test)
 
-print(test["protocol_type"].head())
+st.write(test["protocol_type"].head())
 
-len(train)/len(test)
+st.write(f'Az eltérés a train és test adathalmaz között: {len(train)/len(test)}')
 
 X_train = train.drop(["label"], axis=1)
 y_train = train["label"]
 X_test = test.drop(["label"], axis=1)
 y_test = test["label"]
 
-print(f"{X_train.shape}")
-print(f"{X_test.shape}")
-print(f"{y_train.shape}")
-print(f"{y_test.shape}")
+##pl 100,10 -> 100 adatpont és 10 jellemző
+st.write("Tanuló adathalmaz (X_train) alakja:", X_train.shape)
+st.write("Teszt adathalmaz (X_test) alakja:", X_test.shape)
+st.write("Tanuló címkék (y_train) alakja:", y_train.shape)
+st.write("Teszt címkék (y_test) alakja:", y_test.shape)
+
 
 
 np.random.seed(42)
@@ -161,14 +159,14 @@ np.random.seed(42)
 np.array(X_train)
 clf = RandomForestClassifier(n_estimators=10, random_state=42)
 start_time = time.time()
-clf.fit(X_train, y_train.values.ravel())  # Fitting the model
+clf.fit(X_train, y_train.values.ravel())
 end_time = time.time()
-print(f"Training time: {end_time - start_time:.4f} seconds")
+st.write(f"Training idő: {end_time - start_time:.4f} mp")
 
 start_time = time.time()
-y_preds = clf.predict(X_test)  # Predicting on the test set
+y_preds = clf.predict(X_test)
 end_time = time.time()
-print(f"Testing time: {end_time - start_time:.4f} seconds")
+st.write(f"Testing idő: {end_time - start_time:.4f} mp")
 
 
 clf = RandomForestClassifier(n_estimators=10)
@@ -176,12 +174,12 @@ start_time = time.time()
 clf.fit(X_train, y_train.values.ravel())
 
 end_time = time.time()
-print("Training time: ", end_time-start_time)
+st.write("Training idő: ", end_time-start_time)
 
 start_time = time.time()
 y_preds = clf.predict(X_test)
 end_time = time.time()
-print("Testing time: ", end_time-start_time)
+st.write("Testing idő: ", end_time-start_time)
 
 np.mean(y_preds == y_test)
 
@@ -199,19 +197,19 @@ from sklearn.metrics import accuracy_score
 accuracy = accuracy_score(y_test, y_preds)
 
 
-print(f"Accuracy: {accuracy:.2f}")
+st.write(f"Pontosság: {accuracy:.2f}")
 
 scores = cross_val_score(clf, X_test, y_test)
-print(f"Mean accuracy: {np.mean(scores):.2f}")
-print(f"Standard deviation: {np.std(scores):.2f}")
+st.write(f"Átlagos pontszám: {np.mean(scores):.2f}")
+st.write(f"Szórás: {np.std(scores):.2f}")
 
 #Make some prediction
 y_preds= clf.predict(X_test)
 
 from sklearn.metrics import classification_report
 
-print("Classification report: ")
-print(classification_report(y_test, y_preds))
+st.write("Osztályozási jelentés: ")
+st.write(classification_report(y_test, y_preds))
 
 np.array(y_test)
 np.array(y_preds)
@@ -219,14 +217,15 @@ from sklearn.metrics import confusion_matrix, classification_report
 
 # Confusion Matrix
 cm = confusion_matrix(y_test, y_preds)
+fig, ax = plt.subplots(figsize=(8, 6))
 sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=['Normal', 'Anomalous'], yticklabels=['Normal', 'Anomalous'])
 plt.title('Confusion Matrix')
-plt.xlabel('Predicted')
-plt.ylabel('Actual')
-plt.show()
+plt.xlabel('Előrejelzett')
+plt.ylabel('Tényleges')
+st.pyplot(fig)
 
 # Classification Report
-print(classification_report(y_test, y_preds))
+st.write(classification_report(y_test, y_preds))
 
 # Kategóriális oszlopok átalakítása numerikussá
 label_encoder = LabelEncoder()
@@ -248,6 +247,7 @@ for k in range(1, 10):
 # Elbow-görbe megjelenítése
 plt.plot(range(1, 10), inertia, marker='o')
 plt.xlabel('Klaszterek száma')
+##Az "inertia" azt méri, hogy az egyes adatpontok mennyire távol helyezkednek el a hozzájuk rendelt klaszter középpontjától (centroidjától).
 plt.ylabel('Inertia')
 plt.show()
 
@@ -261,44 +261,41 @@ df['cluster'] = kmeans.fit_predict(df[numerical_features])
 # Távolságok kiszámítása a legközelebbi centroidtól minden adatpontra (csak numerikus oszlopokkal)
 df['distance_to_centroid'] = np.min(kmeans.transform(df[numerical_features]), axis=1)
 
-# Anomáliák kiszűrése
 # Azokat tekintjük anomáliának, amelyek távolsága az átlagnál szignifikánsan nagyobb
 distance_threshold = df['distance_to_centroid'].mean() + 2 * df['distance_to_centroid'].std()
 anomalies = df[df['distance_to_centroid'] > distance_threshold]
 
-# Eredmények kiírása
-print("Összes anomália száma:", anomalies.shape[0])
-print(anomalies)
+st.write("Összes anomália száma:", anomalies.shape[0])
+st.write("Anomáliák: ")
+st.write(anomalies)
 
 import pandas as pd
 
-# Numerikus és kategóriás oszlopok szétválasztása
 numerical_features = df.select_dtypes(include=['int64', 'float64']).columns
 categorical_features = df.select_dtypes(include=['object']).columns
 
-# Numerikus oszlopok statisztikai mutatói (átlag, szórás, minimum, maximum, kvartilisek)
-print("Numerikus oszlopok statisztikai mutatói:")
-print(df[numerical_features].describe())
+st.write("Numerikus oszlopok statisztikai mutatói:")
+st.write(df[numerical_features].describe())
 
 # Kategóriás oszlopok gyakoriságai
-print("\nKategóriás oszlopok gyakorisági eloszlása:")
+st.write("\nKategóriás oszlopok gyakorisági eloszlása:")
 for col in categorical_features:
-    print(f"\n{col} oszlop:")
-    print(df[col].value_counts())
+    st.write(f"\n{col} oszlop:")
+    st.write(df[col].value_counts())
 
 # Eltérések és kilengő adatok a numerikus oszlopok között
-print("\nEltérések és kilengő adatok a numerikus oszlopok között:")
+st.write("\nEltérések és kilengő adatok a numerikus oszlopok között:")
 for col in numerical_features:
     # Szórás és maximum-minimum eltérés
-    print(f"\n{col} oszlop eltérései:")
-    print(f"  Szórás: {df[col].std():.2f}")
-    print(f"  Maximum - Minimum eltérés: {df[col].max() - df[col].min():.2f}")
-    print(f"  25%-os kvartilis: {df[col].quantile(0.25):.2f}")
-    print(f"  50%-os kvartilis (median): {df[col].quantile(0.5):.2f}")
-    print(f"  75%-os kvartilis: {df[col].quantile(0.75):.2f}")
-    print(f"  IQR (Interquartile Range): {df[col].quantile(0.75) - df[col].quantile(0.25):.2f}")
-    print(f"  Skewness (aszimmetria): {df[col].skew():.2f}")
-    print(f"  Kurtosis: {df[col].kurt():.2f}")
+    st.write(f"\n{col} oszlop eltérései:")
+    st.write(f"  Szórás: {df[col].std():.2f}")
+    st.write(f"  Maximum - Minimum eltérés: {df[col].max() - df[col].min():.2f}")
+    st.write(f"  25%-os kvartilis: {df[col].quantile(0.25):.2f}")
+    st.write(f"  50%-os kvartilis (median): {df[col].quantile(0.5):.2f}")
+    st.write(f"  75%-os kvartilis: {df[col].quantile(0.75):.2f}")
+    st.write(f"  IQR (Interquartile Range): {df[col].quantile(0.75) - df[col].quantile(0.25):.2f}")
+    st.write(f"  Skewness (aszimmetria): {df[col].skew():.2f}")
+    st.write(f"  Kurtosis: {df[col].kurt():.2f}")
 
     # IQR alapú kilengők meghatározása
     Q1 = df[col].quantile(0.25)
@@ -307,26 +304,22 @@ for col in numerical_features:
     lower_bound = Q1 - 1.5 * IQR
     upper_bound = Q3 + 1.5 * IQR
 
-    # Kilengő adatok
     outliers = df[(df[col] < lower_bound) | (df[col] > upper_bound)]
 
     if not outliers.empty:
-        print(f"Kilengő adatok ({col}):")
-        print(outliers[[col]].head())  # Az első pár kilengő adatot kiírjuk
+        st.write(f"Kilengő adatok ({col}):")
+        st.write(outliers[[col]].head())
     else:
-        print(f"Nincs kilengő adat a {col} oszlopban.")
+        st.write(f"Nincs kilengő adat a {col} oszlopban.")
 
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-# Numerikus oszlopok
 numerical_features = df.select_dtypes(include=['int64', 'float64']).columns
 
-# Kilengő adatok nyilvántartása
 outlier_flags = pd.DataFrame(index=df.index)
 
-# Kilengő adatok vizsgálata minden numerikus oszlopra
 for col in numerical_features:
     Q1 = df[col].quantile(0.25)
     Q3 = df[col].quantile(0.75)
@@ -334,26 +327,19 @@ for col in numerical_features:
     lower_bound = Q1 - 1.5 * IQR
     upper_bound = Q3 + 1.5 * IQR
 
-    # Kilengő adatokat keresünk
     outliers = (df[col] < lower_bound) | (df[col] > upper_bound)
 
-    # Kilengő adatokat hozzáadunk a DataFrame-hez
     outlier_flags[col] = outliers.astype(int)  # 1, ha kilengő adat, 0 ha nem
 
-# Hőtérkép létrehozása
-plt.figure(figsize=(12, 8))  # A hőtérkép méretének beállítása
-sns.heatmap(outlier_flags, cmap='coolwarm', cbar=False, xticklabels=True, yticklabels=False, annot=False)
+fig, ax = plt.subplots(figsize=(12, 8))
+sns.heatmap(outlier_flags, cmap='coolwarm', cbar=False, xticklabels=True, yticklabels=False, annot=False, ax=ax)
 
-# Hőtérkép cím és címkék beállítása
-plt.title("Kilengő adatok hőtérképe", fontsize=16)
-plt.xlabel("Oszlopok", fontsize=14)
-plt.ylabel("Adatpontok", fontsize=14)
+ax.set_title("Kilengő adatok hőtérképe", fontsize=16)
+ax.set_xlabel("Oszlopok", fontsize=14)
+ax.set_ylabel("Adatpontok", fontsize=14)
+plt.tight_layout()
+st.pyplot(fig)
 
-# Hőtérkép megjelenítése
-plt.show()
-
-print("Vége")
-# Eltérések és anomáliák meghatározása
 distance_threshold = df['distance_to_centroid'].mean() + 2 * df['distance_to_centroid'].std()
 anomaliak = df[df['distance_to_centroid'] > distance_threshold]
 
@@ -361,30 +347,21 @@ anomaliak = df[df['distance_to_centroid'] > distance_threshold]
 anomalia_count = anomaliak.shape[0]
 threshold_ratio = anomalia_count / len(df)  # Az anomáliák aránya a teljes adathalmazhoz képest
 
-# Anomáliák név szerinti megjelenítése
 anomalia_names = anomaliak.columns
 
-# Anomália nevek és darabszámok kiírása
-print(f"Összes anomália: {anomalia_count}")
-print(f"Az anomáliák aránya a teljes adathalmazban: {threshold_ratio:.4f}")
+st.write(f"Összes anomália: {anomalia_count}")
+st.write(f"Az anomáliák aránya a teljes adathalmazban: {threshold_ratio:.4f}")
 
-# Az anomáliák számának és a tresholdhoz viszonyított arányának grafikonon való megjelenítése
-# Konvertáljuk a nem numerikus oszlopokat, hogy biztosan numerikusak legyenek
-# Ha nem numerikus oszlopok is vannak, azokat figyelmen kívül hagyjuk
-
-# Eltávolítjuk a 'duration' oszlopot, ha az létezik
 anomaliak = anomaliak.drop(columns=['duration'], errors='ignore')
 
-# Most számoljuk ki az oszlopok összegét (ha numerikus)
 numeric_anomaliak = anomaliak.select_dtypes(include=['number'])
 
-plt.figure(figsize=(10, 6))
-plt.bar(numeric_anomaliak.columns, [numeric_anomaliak[col].sum() for col in numeric_anomaliak.columns])
-plt.xlabel('Anomália oszlopok')
-plt.ylabel('Darabszám')
-plt.title('Anomáliák előfordulásának száma az oszlopokban')
-plt.xticks(rotation=90)
+fig, ax = plt.subplots(figsize=(10, 6))
+ax.bar(numeric_anomaliak.columns, anomalia_count)
+ax.set_xlabel('Anomália oszlopok')
+ax.set_ylabel('Darabszám')
+ax.set_title('Anomáliák előfordulásának száma az oszlopokban')
+ax.set_xticks(range(len(numeric_anomaliak.columns)))
+ax.set_xticklabels(numeric_anomaliak.columns, rotation=90)
 plt.tight_layout()
-plt.show()
-
-print("Vége2")
+st.pyplot(fig)

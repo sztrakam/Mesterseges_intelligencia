@@ -1,0 +1,2 @@
+C:\Users\msztr\PycharmProjects\Mesterseges_intelligencia_beadando>.\.venv\Scripts\activate
+(.venv) C:\Users\msztr\PycharmProjects\Mesterseges_intelligencia_beadando\.venv>streamlit run ai.py
